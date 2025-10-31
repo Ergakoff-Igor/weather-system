@@ -31,7 +31,7 @@
 ### Запуск в Docker
 1. Клонируйте репозиторий:
 ```bash
-git clone <(https://github.com/Ergakoff-Igor/weather-system.git)>
+git clone https://github.com/Ergakoff-Igor/weather-system.git
 cd weather-system
 ```
 2. Соберите и запустите все сервисы:
