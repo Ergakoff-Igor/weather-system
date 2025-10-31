@@ -35,10 +35,24 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,prometheus
+        include: health,info,prometheus,metrics
+    enabled-by-default: true
   endpoint:
     health:
       show-details: always
+      enabled: true
+    prometheus:
+      enabled: true
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        rabbitmq.message: true
 
 weather:
   forecast:
@@ -48,5 +62,6 @@ weather:
 logging:
   level:
     com.weather: INFO
+    org.springframework.amqp: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

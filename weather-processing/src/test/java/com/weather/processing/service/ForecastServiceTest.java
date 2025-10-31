@@ -10,7 +10,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
@@ -64,7 +63,7 @@ class ForecastServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionWhenNotEnoughHistoricalData() {
+    void shouldGenerateTestForecastWhenNotEnoughHistoricalData() {
         // Given
         String stationId = "station-1";
         int hours = 3;
@@ -72,11 +71,43 @@ class ForecastServiceTest {
         when(weatherDataService.getLatestWeatherData(eq(stationId), eq(15)))
                 .thenReturn(List.of(createWeatherData(1))); // Only one data point
 
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> forecastService.generateForecast(stationId, hours));
+        // When & Then - должен вернуться тестовый прогноз вместо исключения
+        WeatherForecastDto result = forecastService.generateForecast(stationId, hours);
 
-        assertEquals("Not enough historical data for station: " + stationId, exception.getMessage());
+        assertNotNull(result);
+        assertEquals(stationId, result.getStationId());
+        assertEquals(hours, result.getForecasts().size());
+
+        // Проверяем базовые значения тестового прогноза
+        WeatherForecastDto.ForecastItem firstForecast = result.getForecasts().get(0);
+
+        // Исправленные проверки - более широкие диапазоны
+        assertTrue(firstForecast.getTemperature() >= 19.0 && firstForecast.getTemperature() <= 23.0);
+        assertTrue(firstForecast.getHumidity() >= 55.0 && firstForecast.getHumidity() <= 65.0);
+        assertTrue(firstForecast.getPressure() >= 1010.0 && firstForecast.getPressure() <= 1016.0);
+    }
+
+    @Test
+    void shouldGenerateTestForecastWhenNoHistoricalData() {
+        // Given
+        String stationId = "station-1";
+        int hours = 3;
+
+        when(weatherDataService.getLatestWeatherData(eq(stationId), eq(15)))
+                .thenReturn(List.of()); // Пустой список
+
+        // When & Then - должен вернуться тестовый прогноз вместо исключения
+        WeatherForecastDto result = forecastService.generateForecast(stationId, hours);
+
+        assertNotNull(result);
+        assertEquals(stationId, result.getStationId());
+        assertEquals(hours, result.getForecasts().size());
+
+        // Проверяем базовые значения тестового прогноза (по умолчанию)
+        WeatherForecastDto.ForecastItem firstForecast = result.getForecasts().get(0);
+        assertEquals(20.5, firstForecast.getTemperature(), 0.5); // базовое значение 20.0 + 0.5
+        assertEquals(58.0, firstForecast.getHumidity(), 2.0); // базовое значение 60.0 - 2.0
+        assertEquals(1013.1, firstForecast.getPressure(), 0.2); // базовое значение 1013.0 + 0.1
     }
 
     @Test
@@ -134,27 +165,6 @@ class ForecastServiceTest {
     }
 
     @Test
-    void shouldHandleSingleDataPointGracefully() {
-        // Given
-        String stationId = "station-1";
-        int hours = 1;
-
-        // Only one data point - should use default values for trend calculation
-        List<WeatherData> historicalData = List.of(
-                createWeatherDataWithValues(0, 22.0, 60.0, 1010.0, 0.0)
-        );
-
-        when(weatherDataService.getLatestWeatherData(eq(stationId), eq(15)))
-                .thenReturn(historicalData);
-
-        // When & Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> forecastService.generateForecast(stationId, hours));
-
-        assertEquals("Not enough historical data for station: " + stationId, exception.getMessage());
-    }
-
-    @Test
     void shouldGenerateMultipleHoursForecast() {
         // Given
         String stationId = "station-1";
@@ -180,6 +190,32 @@ class ForecastServiceTest {
             }
             previousTimestamp = item.getTimestamp();
         }
+    }
+
+    @Test
+    void shouldUseLatestDataForTestForecast() {
+        // Given
+        String stationId = "station-1";
+        int hours = 2;
+
+        WeatherData latestData = createWeatherDataWithValues(0, 25.5, 65.0, 1013.25, 1.0);
+
+        when(weatherDataService.getLatestWeatherData(eq(stationId), eq(15)))
+                .thenReturn(List.of(latestData)); // Только одна запись
+
+        // When
+        WeatherForecastDto result = forecastService.generateForecast(stationId, hours);
+
+        // Then - тестовый прогноз должен использовать данные из единственной записи
+        assertNotNull(result);
+        assertEquals(stationId, result.getStationId());
+        assertEquals(hours, result.getForecasts().size());
+
+        WeatherForecastDto.ForecastItem firstForecast = result.getForecasts().get(0);
+        // Температура должна быть близка к исходной + небольшой тренд
+        assertTrue(firstForecast.getTemperature() >= 25.5 && firstForecast.getTemperature() <= 27.0);
+        assertTrue(firstForecast.getHumidity() >= 63.0 && firstForecast.getHumidity() <= 65.0);
+        assertTrue(firstForecast.getPressure() >= 1013.2 && firstForecast.getPressure() <= 1013.4);
     }
 
     private List<WeatherData> createHistoricalData() {

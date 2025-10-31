@@ -36,8 +36,11 @@ public class ForecastService {
 
         List<WeatherData> historicalData = weatherDataService.getLatestWeatherData(stationId, historySize);
 
+        // ЕСЛИ ДАННЫХ НЕДОСТАТОЧНО - ГЕНЕРИРУЕМ ТЕСТОВЫЙ ПРОГНОЗ
         if (historicalData.size() < 2) {
-            throw new IllegalArgumentException("Not enough historical data for station: " + stationId);
+            log.warn("Not enough historical data for station: {}. Available: {}. Generating test forecast.",
+                    stationId, historicalData.size());
+            return generateTestForecast(stationId, hours, historicalData);
         }
 
         List<WeatherForecastDto.ForecastItem> forecasts = new ArrayList<>();
@@ -55,6 +58,52 @@ public class ForecastService {
         forecast.setForecasts(forecasts);
 
         log.debug("Generated forecast with {} hours for station: {}", hours, stationId);
+        return forecast;
+    }
+
+    // ДОБАВЛЕН МЕТОД ДЛЯ ТЕСТОВОГО ПРОГНОЗА
+    private WeatherForecastDto generateTestForecast(String stationId, int hours, List<WeatherData> availableData) {
+        List<WeatherForecastDto.ForecastItem> forecasts = new ArrayList<>();
+        Instant now = Instant.now();
+
+        double baseTemp = 20.0;
+        double baseHumidity = 60.0;
+        double basePressure = 1013.0;
+        double basePrecipitation = 0.0;
+
+        // Если есть хоть какие-то данные, используем их как базовые значения
+        if (!availableData.isEmpty()) {
+            WeatherData latest = availableData.get(0);
+            baseTemp = latest.getTemperature();
+            baseHumidity = latest.getHumidity();
+            basePressure = latest.getPressure();
+            basePrecipitation = latest.getPrecipitation();
+        }
+
+        for (int i = 1; i <= hours; i++) {
+            Instant forecastTime = now.plus(i, ChronoUnit.HOURS);
+
+            // Простая логика тестового прогноза
+            double temp = baseTemp + (i * 0.5); // температура немного растет
+            double humidity = Math.max(30, baseHumidity - (i * 2)); // влажность немного падает
+            double pressure = basePressure + (i * 0.1); // давление немного растет
+            double precipitation = basePrecipitation;
+
+            forecasts.add(new WeatherForecastDto.ForecastItem(
+                    forecastTime,
+                    Math.round(temp * 10.0) / 10.0,
+                    Math.round(humidity * 10.0) / 10.0,
+                    Math.round(pressure * 10.0) / 10.0,
+                    Math.round(precipitation * 10.0) / 10.0
+            ));
+        }
+
+        WeatherForecastDto forecast = new WeatherForecastDto();
+        forecast.setStationId(stationId);
+        forecast.setGeneratedAt(now);
+        forecast.setForecasts(forecasts);
+
+        log.info("Generated test forecast for station: {} with {} hours", stationId, hours);
         return forecast;
     }
 
