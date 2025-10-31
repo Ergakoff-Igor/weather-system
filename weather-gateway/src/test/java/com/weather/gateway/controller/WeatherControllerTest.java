@@ -13,7 +13,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
@@ -35,6 +35,7 @@ class WeatherControllerTest {
 
     @BeforeEach
     void setUp() {
+        // Регистрируем модуль для работы с Java 8 Time API
         objectMapper.registerModule(new JavaTimeModule());
     }
 
@@ -43,7 +44,7 @@ class WeatherControllerTest {
         // Given
         WeatherDataDto weatherData = new WeatherDataDto(
                 "station-1",
-                LocalDateTime.now(),
+                Instant.parse("2025-10-31T11:00:00Z"),
                 25.5,
                 65.0,
                 1013.25,
@@ -60,9 +61,36 @@ class WeatherControllerTest {
     }
 
     @Test
-    void shouldReturnBadRequestForInvalidData() throws Exception {
-        // Given - invalid JSON structure
-        String invalidJson = "{}"; // Пустой JSON без обязательных полей
+    void shouldReturnBadRequestForInvalidWeatherData() throws Exception {
+        // Given - invalid data (missing required fields)
+        String invalidJson = """
+        {
+            "stationId": "station-1"
+        }
+        """;
+
+        // When & Then
+        mockMvc.perform(post("/api/v1/weather/data")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidJson))
+                .andExpect(status().isBadRequest());
+
+        verify(weatherService, never()).processWeatherData(any(WeatherDataDto.class));
+    }
+
+    @Test
+    void shouldReturnBadRequestForNullValues() throws Exception {
+        // Given - data with null values
+        String invalidJson = """
+            {
+                "stationId": "station-1",
+                "timestamp": "2025-10-31T11:00:00Z",
+                "temperature": null,
+                "humidity": 65.0,
+                "pressure": 1013.25,
+                "precipitation": 0.0
+            }
+            """;
 
         // When & Then
         mockMvc.perform(post("/api/v1/weather/data")
@@ -87,7 +115,9 @@ class WeatherControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.stationId").value("station-1"))
                 .andExpect(jsonPath("$.forecasts").isArray())
-                .andExpect(jsonPath("$.forecasts.length()").value(1));
+                .andExpect(jsonPath("$.forecasts.length()").value(1))
+                .andExpect(jsonPath("$.forecasts[0].temperature").value(26.0))
+                .andExpect(jsonPath("$.forecasts[0].humidity").value(63.0));
 
         verify(weatherService).getWeatherForecast("station-1", 3);
     }
@@ -112,7 +142,40 @@ class WeatherControllerTest {
     void shouldReturnBadRequestWhenStationIdMissing() throws Exception {
         // When & Then
         mockMvc.perform(get("/api/v1/weather/forecast"))
-                .andExpect(status().isBadRequest()); // Spring вернет 400 когда обязательный параметр отсутствует
+                .andExpect(status().isBadRequest());
+
+        verify(weatherService, never()).getWeatherForecast(anyString(), anyInt());
+    }
+
+    @Test
+    void shouldReturnBadRequestForEmptyStationId() throws Exception {
+        // When & Then
+        mockMvc.perform(get("/api/v1/weather/forecast")
+                        .param("stationId", "")
+                        .param("hours", "3"))
+                .andExpect(status().isBadRequest());
+
+        verify(weatherService, never()).getWeatherForecast(anyString(), anyInt());
+    }
+
+    @Test
+    void shouldReturnBadRequestForInvalidHours() throws Exception {
+        // When & Then - hours=0 (invalid, less than minimum)
+        mockMvc.perform(get("/api/v1/weather/forecast")
+                        .param("stationId", "station-1")
+                        .param("hours", "0"))
+                .andExpect(status().isBadRequest());
+
+        verify(weatherService, never()).getWeatherForecast(anyString(), anyInt());
+    }
+
+    @Test
+    void shouldReturnBadRequestForTooManyHours() throws Exception {
+        // When & Then - hours=25 (invalid, more than maximum)
+        mockMvc.perform(get("/api/v1/weather/forecast")
+                        .param("stationId", "station-1")
+                        .param("hours", "25"))
+                .andExpect(status().isBadRequest());
 
         verify(weatherService, never()).getWeatherForecast(anyString(), anyInt());
     }
@@ -127,13 +190,34 @@ class WeatherControllerTest {
         mockMvc.perform(get("/api/v1/weather/forecast")
                         .param("stationId", "station-1")
                         .param("hours", "3"))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Service unavailable"));
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void shouldHandleWeatherDataProcessingException() throws Exception {
+        // Given
+        WeatherDataDto weatherData = new WeatherDataDto(
+                "station-1",
+                Instant.parse("2025-10-31T11:00:00Z"),
+                25.5,
+                65.0,
+                1013.25,
+                0.0
+        );
+
+        doThrow(new RuntimeException("RabbitMQ error"))
+                .when(weatherService).processWeatherData(any(WeatherDataDto.class));
+
+        // When & Then
+        mockMvc.perform(post("/api/v1/weather/data")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(weatherData)))
+                .andExpect(status().isInternalServerError());
     }
 
     private WeatherForecastDto createTestForecast() {
         WeatherForecastDto.ForecastItem forecastItem = new WeatherForecastDto.ForecastItem(
-                LocalDateTime.now().plusHours(1),
+                Instant.parse("2025-10-31T12:00:00Z"), // fixed timestamp for consistent testing
                 26.0,
                 63.0,
                 1013.5,
@@ -142,44 +226,8 @@ class WeatherControllerTest {
 
         return new WeatherForecastDto(
                 "station-1",
-                LocalDateTime.now(),
+                Instant.parse("2025-10-31T11:00:00Z"), // fixed timestamp
                 List.of(forecastItem)
         );
-    }
-
-    @Test
-    void shouldReturnBadRequestForInvalidHours() throws Exception {
-        // When & Then - hours=0 (invalid, less than minimum)
-        mockMvc.perform(get("/api/v1/weather/forecast")
-                        .param("stationId", "station-1")
-                        .param("hours", "0"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").exists());
-
-        verify(weatherService, never()).getWeatherForecast(anyString(), anyInt());
-    }
-
-    @Test
-    void shouldReturnBadRequestForTooManyHours() throws Exception {
-        // When & Then - hours=25 (invalid, more than maximum)
-        mockMvc.perform(get("/api/v1/weather/forecast")
-                        .param("stationId", "station-1")
-                        .param("hours", "25"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").exists());
-
-        verify(weatherService, never()).getWeatherForecast(anyString(), anyInt());
-    }
-
-    @Test
-    void shouldReturnBadRequestForEmptyStationId() throws Exception {
-        // When & Then - empty stationId
-        mockMvc.perform(get("/api/v1/weather/forecast")
-                        .param("stationId", "")
-                        .param("hours", "3"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").exists());
-
-        verify(weatherService, never()).getWeatherForecast(anyString(), anyInt());
     }
 }

@@ -14,7 +14,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.List;
 
 import static com.weather.shared.config.RabbitMQConfig.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,27 +34,21 @@ class WeatherServiceTest {
     @Captor
     private ArgumentCaptor<WeatherMessage> messageCaptor;
 
-    @Captor
-    private ArgumentCaptor<String> exchangeCaptor;
-
-    @Captor
-    private ArgumentCaptor<String> routingKeyCaptor;
-
     private WeatherService weatherService;
 
     @BeforeEach
     void setUp() {
         weatherService = new WeatherService(rabbitTemplate, restTemplate);
-        // Используем ReflectionTestUtils для установки приватного поля
         ReflectionTestUtils.setField(weatherService, "processingServiceUrl", "http://localhost:8081");
     }
 
     @Test
     void shouldProcessWeatherDataSuccessfully() {
         // Given
+        Instant timestamp = Instant.now();
         WeatherDataDto weatherData = new WeatherDataDto(
                 "station-1",
-                LocalDateTime.now(),
+                timestamp,
                 25.5,
                 65.0,
                 1013.25,
@@ -63,19 +58,21 @@ class WeatherServiceTest {
         // When
         weatherService.processWeatherData(weatherData);
 
-        // Then
-        verify(rabbitTemplate).convertAndSend(
-                eq(WEATHER_DATA_EXCHANGE),  // Явно указываем exchange
-                eq(WEATHER_DATA_ROUTING_KEY), // Явно указываем routing key
-                any(WeatherMessage.class)   // Любой объект сообщения
-        );
-
-        // Альтернативно можно использовать ArgumentCaptor с явными типами
+        // Then - verify message content using ArgumentCaptor
         verify(rabbitTemplate).convertAndSend(
                 eq(WEATHER_DATA_EXCHANGE),
                 eq(WEATHER_DATA_ROUTING_KEY),
-                any(WeatherMessage.class)
+                messageCaptor.capture()
         );
+
+        WeatherMessage capturedMessage = messageCaptor.getValue();
+        assertNotNull(capturedMessage);
+        assertEquals("station-1", capturedMessage.getStationId());
+        assertEquals(timestamp, capturedMessage.getTimestamp());
+        assertEquals(25.5, capturedMessage.getTemperature());
+        assertEquals(65.0, capturedMessage.getHumidity());
+        assertEquals(1013.25, capturedMessage.getPressure());
+        assertEquals(0.0, capturedMessage.getPrecipitation());
     }
 
     @Test
@@ -85,7 +82,9 @@ class WeatherServiceTest {
         int hours = 3;
         WeatherForecastDto expectedForecast = createTestForecast();
 
-        when(restTemplate.getForObject(anyString(), eq(WeatherForecastDto.class)))
+        String expectedUrl = String.format("http://localhost:8081/api/v1/weather/forecast?stationId=%s&hours=%d", stationId, hours);
+
+        when(restTemplate.getForObject(expectedUrl, WeatherForecastDto.class))
                 .thenReturn(expectedForecast);
 
         // When
@@ -96,10 +95,11 @@ class WeatherServiceTest {
         assertEquals(stationId, result.getStationId());
         assertEquals(1, result.getForecasts().size());
 
-        verify(restTemplate).getForObject(
-                "http://localhost:8081/api/v1/weather/forecast?stationId=station-1&hours=3",
-                WeatherForecastDto.class
-        );
+        WeatherForecastDto.ForecastItem forecastItem = result.getForecasts().get(0);
+        assertEquals(26.0, forecastItem.getTemperature());
+        assertEquals(63.0, forecastItem.getHumidity());
+
+        verify(restTemplate).getForObject(expectedUrl, WeatherForecastDto.class);
     }
 
     @Test
@@ -107,14 +107,13 @@ class WeatherServiceTest {
         // Given
         WeatherDataDto weatherData = new WeatherDataDto(
                 "station-1",
-                LocalDateTime.now(),
+                Instant.now(),
                 25.5,
                 65.0,
                 1013.25,
                 0.0
         );
 
-        // Используем явные параметры чтобы избежать неоднозначности
         doThrow(new RuntimeException("RabbitMQ error"))
                 .when(rabbitTemplate).convertAndSend(eq(WEATHER_DATA_EXCHANGE), eq(WEATHER_DATA_ROUTING_KEY), any(WeatherMessage.class));
 
@@ -123,11 +122,31 @@ class WeatherServiceTest {
                 () -> weatherService.processWeatherData(weatherData));
 
         assertEquals("Failed to process weather data", exception.getMessage());
+        assertTrue(exception.getCause().getMessage().contains("RabbitMQ error"));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenRestTemplateFails() {
+        // Given
+        String stationId = "station-1";
+        int hours = 3;
+
+        String expectedUrl = String.format("http://localhost:8081/api/v1/weather/forecast?stationId=%s&hours=%d", stationId, hours);
+
+        when(restTemplate.getForObject(expectedUrl, WeatherForecastDto.class))
+                .thenThrow(new RuntimeException("Service unavailable"));
+
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> weatherService.getWeatherForecast(stationId, hours));
+
+        assertEquals("Failed to get weather forecast", exception.getMessage());
+        assertTrue(exception.getCause().getMessage().contains("Service unavailable"));
     }
 
     private WeatherForecastDto createTestForecast() {
         WeatherForecastDto.ForecastItem forecastItem = new WeatherForecastDto.ForecastItem(
-                LocalDateTime.now().plusHours(1),
+                Instant.now().plusSeconds(3600), // +1 hour
                 26.0,
                 63.0,
                 1013.5,
@@ -136,8 +155,8 @@ class WeatherServiceTest {
 
         return new WeatherForecastDto(
                 "station-1",
-                LocalDateTime.now(),
-                java.util.List.of(forecastItem)
+                Instant.now(),
+                List.of(forecastItem)
         );
     }
 }

@@ -13,7 +13,9 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -46,7 +48,7 @@ class WeatherProcessingIntegrationTest {
         // Given
         WeatherData weatherData = new WeatherData();
         weatherData.setStationId("test-station");
-        weatherData.setTimestamp(LocalDateTime.now());
+        weatherData.setTimestamp(Instant.now());
         weatherData.setTemperature(25.5);
         weatherData.setHumidity(65.0);
         weatherData.setPressure(1013.25);
@@ -70,7 +72,7 @@ class WeatherProcessingIntegrationTest {
 
         WeatherData olderData = new WeatherData();
         olderData.setStationId(stationId);
-        olderData.setTimestamp(LocalDateTime.now().minusHours(2));
+        olderData.setTimestamp(Instant.now().minus(2, ChronoUnit.HOURS));
         olderData.setTemperature(20.0);
         olderData.setHumidity(60.0);
         olderData.setPressure(1010.0);
@@ -78,7 +80,7 @@ class WeatherProcessingIntegrationTest {
 
         WeatherData newerData = new WeatherData();
         newerData.setStationId(stationId);
-        newerData.setTimestamp(LocalDateTime.now().minusHours(1));
+        newerData.setTimestamp(Instant.now().minus(1, ChronoUnit.HOURS));
         newerData.setTemperature(22.0);
         newerData.setHumidity(62.0);
         newerData.setPressure(1012.0);

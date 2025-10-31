@@ -1,20 +1,13 @@
 package com.weather.processing.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
-@Table(name = "weather_data", indexes = {
-        @Index(name = "idx_station_timestamp", columnList = "stationId, timestamp"),
-        @Index(name = "idx_timestamp", columnList = "timestamp")
-})
+@Table(name = "weather_data",
+        indexes = @Index(columnList = "stationId, timestamp", unique = true))
 public class WeatherData {
 
     @Id
@@ -25,7 +18,7 @@ public class WeatherData {
     private String stationId;
 
     @Column(nullable = false)
-    private LocalDateTime timestamp;
+    private Instant timestamp; // Изменено на Instant
 
     @Column(nullable = false)
     private Double temperature;
@@ -38,7 +31,4 @@ public class WeatherData {
 
     @Column(nullable = false)
     private Double precipitation;
-
-    @Column(updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
 }

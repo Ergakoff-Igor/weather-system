@@ -20,8 +20,8 @@ public class WeatherForecastController {
     @GetMapping("/forecast")
     @Operation(summary = "Получение прогноза погоды", description = "Генерирует прогноз погоды для указанной станции")
     public WeatherForecastDto getWeatherForecast(
-            @RequestParam String stationId,
-            @RequestParam(defaultValue = "1") int hours) {
+            @RequestParam("stationId") String stationId,
+            @RequestParam(value = "hours", defaultValue = "1") int hours) {
 
         log.info("Requesting forecast for station: {}, hours: {}", stationId, hours);
         return forecastService.generateForecast(stationId, hours);

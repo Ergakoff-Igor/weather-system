@@ -3,7 +3,9 @@ package com.weather.shared.messaging;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Data
@@ -11,7 +13,10 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class WeatherMessage {
     private String stationId;
-    private LocalDateTime timestamp;
+
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+    private Instant timestamp;
+
     private Double temperature;
     private Double humidity;
     private Double pressure;

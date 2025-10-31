@@ -7,6 +7,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -28,7 +29,7 @@ class WeatherDataDtoTest {
         // Given
         WeatherDataDto dto = new WeatherDataDto(
                 "station-1",
-                LocalDateTime.now(),
+                Instant.now(),
                 25.5,
                 65.0,
                 1013.25,
@@ -47,7 +48,7 @@ class WeatherDataDtoTest {
         // Given
         WeatherDataDto dto = new WeatherDataDto(
                 "",
-                LocalDateTime.now(),
+                Instant.now(),
                 25.5,
                 65.0,
                 1013.25,
@@ -67,7 +68,7 @@ class WeatherDataDtoTest {
         // Given
         WeatherDataDto dto = new WeatherDataDto(
                 "station-1",
-                LocalDateTime.now(),
+                Instant.now(),
                 -150.0, // Too low
                 65.0,
                 1013.25,
@@ -87,7 +88,7 @@ class WeatherDataDtoTest {
         // Given
         WeatherDataDto dto = new WeatherDataDto(
                 "station-1",
-                LocalDateTime.now(),
+                Instant.now(),
                 25.5,
                 150.0, // Too high
                 1013.25,
@@ -107,7 +108,7 @@ class WeatherDataDtoTest {
         // Given
         WeatherDataDto dto = new WeatherDataDto(
                 "station-1",
-                LocalDateTime.now(),
+                Instant.now(),
                 25.5,
                 65.0,
                 500.0, // Too low
@@ -127,7 +128,7 @@ class WeatherDataDtoTest {
         // Given
         WeatherDataDto dto = new WeatherDataDto(
                 "station-1",
-                LocalDateTime.now(),
+                Instant.now(),
                 25.5,
                 65.0,
                 1013.25,

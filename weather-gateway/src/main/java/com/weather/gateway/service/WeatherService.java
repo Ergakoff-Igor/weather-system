@@ -26,7 +26,7 @@ public class WeatherService {
     public void processWeatherData(WeatherDataDto weatherData) {
         WeatherMessage message = new WeatherMessage(
                 weatherData.getStationId(),
-                weatherData.getTimestamp(),
+                weatherData.getTimestamp(),  // Теперь это Instant
                 weatherData.getTemperature(),
                 weatherData.getHumidity(),
                 weatherData.getPressure(),

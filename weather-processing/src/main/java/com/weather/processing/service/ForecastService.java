@@ -8,7 +8,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,10 +41,10 @@ public class ForecastService {
         }
 
         List<WeatherForecastDto.ForecastItem> forecasts = new ArrayList<>();
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         for (int i = 1; i <= hours; i++) {
-            LocalDateTime forecastTime = now.plusHours(i);
+            Instant forecastTime = now.plus(i, ChronoUnit.HOURS);
             WeatherForecastDto.ForecastItem forecastItem = calculateForecast(historicalData, forecastTime, i);
             forecasts.add(forecastItem);
         }
@@ -58,7 +59,7 @@ public class ForecastService {
     }
 
     private WeatherForecastDto.ForecastItem calculateForecast(List<WeatherData> historicalData,
-                                                              LocalDateTime forecastTime, int hoursAhead) {
+                                                              Instant forecastTime, int hoursAhead) {
         // Простая линейная экстраполяция на основе последних данных
         int n = historicalData.size();
 

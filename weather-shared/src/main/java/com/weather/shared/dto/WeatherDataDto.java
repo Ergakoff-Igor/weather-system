@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Data
@@ -17,8 +18,8 @@ public class WeatherDataDto {
     private String stationId;
 
     @NotNull(message = "timestamp is required")
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
-    private LocalDateTime timestamp;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+    private Instant timestamp;
 
     @NotNull(message = "temperature is required")
     @DecimalMin(value = "-100.0", message = "Temperature must be >= -100")

@@ -9,7 +9,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 
@@ -170,7 +172,7 @@ class ForecastServiceTest {
         assertEquals(hours, forecast.getForecasts().size());
 
         // Verify each forecast hour has increasing timestamp
-        LocalDateTime previousTimestamp = null;
+        Instant previousTimestamp = null;
         for (WeatherForecastDto.ForecastItem item : forecast.getForecasts()) {
             assertNotNull(item.getTimestamp());
             if (previousTimestamp != null) {
@@ -193,7 +195,7 @@ class ForecastServiceTest {
     private WeatherData createWeatherData(int hoursAgo) {
         WeatherData data = new WeatherData();
         data.setStationId("station-1");
-        data.setTimestamp(LocalDateTime.now().minusHours(hoursAgo));
+        data.setTimestamp(Instant.now().minus(hoursAgo, ChronoUnit.HOURS));
         data.setTemperature(20.0 + hoursAgo); // Increasing trend
         data.setHumidity(60.0 - hoursAgo); // Decreasing trend
         data.setPressure(1013.0 + hoursAgo * 0.1); // Slowly increasing
@@ -204,7 +206,7 @@ class ForecastServiceTest {
     private WeatherData createWeatherDataWithValues(int hoursAgo, double temp, double humidity, double pressure, double precipitation) {
         WeatherData data = new WeatherData();
         data.setStationId("station-1");
-        data.setTimestamp(LocalDateTime.now().minusHours(hoursAgo));
+        data.setTimestamp(Instant.now().minus(hoursAgo, ChronoUnit.HOURS));
         data.setTemperature(temp);
         data.setHumidity(humidity);
         data.setPressure(pressure);

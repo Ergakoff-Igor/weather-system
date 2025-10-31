@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -15,8 +15,8 @@ public class WeatherForecastDto {
 
     private String stationId;
 
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
-    private LocalDateTime generatedAt;
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+    private Instant generatedAt;
 
     private List<ForecastItem> forecasts;
 
@@ -24,8 +24,8 @@ public class WeatherForecastDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class ForecastItem {
-        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'")
-        private LocalDateTime timestamp;
+        @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'", timezone = "UTC")
+        private Instant timestamp;
         private Double temperature;
         private Double humidity;
         private Double pressure;
