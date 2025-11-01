@@ -29,7 +29,6 @@ class ForecastServiceTest {
     @BeforeEach
     void setUp() {
         forecastService = new ForecastService(weatherDataService);
-        // Используем ReflectionTestUtils для установки приватных полей
         ReflectionTestUtils.setField(forecastService, "historySize", 15);
         ReflectionTestUtils.setField(forecastService, "maxForecastHours", 24);
     }
@@ -53,7 +52,6 @@ class ForecastServiceTest {
         assertEquals(hours, forecast.getForecasts().size());
         assertNotNull(forecast.getGeneratedAt());
 
-        // Verify forecast items have reasonable values
         forecast.getForecasts().forEach(item -> {
             assertTrue(item.getTemperature() >= -50 && item.getTemperature() <= 50);
             assertTrue(item.getHumidity() >= 0 && item.getHumidity() <= 100);
@@ -71,17 +69,15 @@ class ForecastServiceTest {
         when(weatherDataService.getLatestWeatherData(eq(stationId), eq(15)))
                 .thenReturn(List.of(createWeatherData(1))); // Only one data point
 
-        // When & Then - должен вернуться тестовый прогноз вместо исключения
+        // When & Then
         WeatherForecastDto result = forecastService.generateForecast(stationId, hours);
 
         assertNotNull(result);
         assertEquals(stationId, result.getStationId());
         assertEquals(hours, result.getForecasts().size());
 
-        // Проверяем базовые значения тестового прогноза
         WeatherForecastDto.ForecastItem firstForecast = result.getForecasts().get(0);
 
-        // Исправленные проверки - более широкие диапазоны
         assertTrue(firstForecast.getTemperature() >= 19.0 && firstForecast.getTemperature() <= 23.0);
         assertTrue(firstForecast.getHumidity() >= 55.0 && firstForecast.getHumidity() <= 65.0);
         assertTrue(firstForecast.getPressure() >= 1010.0 && firstForecast.getPressure() <= 1016.0);
@@ -94,20 +90,19 @@ class ForecastServiceTest {
         int hours = 3;
 
         when(weatherDataService.getLatestWeatherData(eq(stationId), eq(15)))
-                .thenReturn(List.of()); // Пустой список
+                .thenReturn(List.of());
 
-        // When & Then - должен вернуться тестовый прогноз вместо исключения
+        // When & Then
         WeatherForecastDto result = forecastService.generateForecast(stationId, hours);
 
         assertNotNull(result);
         assertEquals(stationId, result.getStationId());
         assertEquals(hours, result.getForecasts().size());
 
-        // Проверяем базовые значения тестового прогноза (по умолчанию)
         WeatherForecastDto.ForecastItem firstForecast = result.getForecasts().get(0);
-        assertEquals(20.5, firstForecast.getTemperature(), 0.5); // базовое значение 20.0 + 0.5
-        assertEquals(58.0, firstForecast.getHumidity(), 2.0); // базовое значение 60.0 - 2.0
-        assertEquals(1013.1, firstForecast.getPressure(), 0.2); // базовое значение 1013.0 + 0.1
+        assertEquals(20.5, firstForecast.getTemperature(), 0.5);
+        assertEquals(58.0, firstForecast.getHumidity(), 2.0);
+        assertEquals(1013.1, firstForecast.getPressure(), 0.2);
     }
 
     @Test
@@ -142,7 +137,6 @@ class ForecastServiceTest {
         String stationId = "station-1";
         int hours = 1;
 
-        // Data with clear trend: temperature increasing by 1 degree per hour
         List<WeatherData> historicalData = Arrays.asList(
                 createWeatherDataWithValues(0, 22.0, 60.0, 1010.0, 0.0),
                 createWeatherDataWithValues(1, 21.0, 62.0, 1009.0, 0.0),
@@ -160,7 +154,6 @@ class ForecastServiceTest {
         assertEquals(1, forecast.getForecasts().size());
 
         WeatherForecastDto.ForecastItem firstForecast = forecast.getForecasts().get(0);
-        // Should continue the trend (approximately)
         assertTrue(firstForecast.getTemperature() > 22.0); // Trending up
     }
 
@@ -181,7 +174,6 @@ class ForecastServiceTest {
         assertNotNull(forecast);
         assertEquals(hours, forecast.getForecasts().size());
 
-        // Verify each forecast hour has increasing timestamp
         Instant previousTimestamp = null;
         for (WeatherForecastDto.ForecastItem item : forecast.getForecasts()) {
             assertNotNull(item.getTimestamp());
@@ -201,18 +193,17 @@ class ForecastServiceTest {
         WeatherData latestData = createWeatherDataWithValues(0, 25.5, 65.0, 1013.25, 1.0);
 
         when(weatherDataService.getLatestWeatherData(eq(stationId), eq(15)))
-                .thenReturn(List.of(latestData)); // Только одна запись
+                .thenReturn(List.of(latestData));
 
         // When
         WeatherForecastDto result = forecastService.generateForecast(stationId, hours);
 
-        // Then - тестовый прогноз должен использовать данные из единственной записи
+        // Then
         assertNotNull(result);
         assertEquals(stationId, result.getStationId());
         assertEquals(hours, result.getForecasts().size());
 
         WeatherForecastDto.ForecastItem firstForecast = result.getForecasts().get(0);
-        // Температура должна быть близка к исходной + небольшой тренд
         assertTrue(firstForecast.getTemperature() >= 25.5 && firstForecast.getTemperature() <= 27.0);
         assertTrue(firstForecast.getHumidity() >= 63.0 && firstForecast.getHumidity() <= 65.0);
         assertTrue(firstForecast.getPressure() >= 1013.2 && firstForecast.getPressure() <= 1013.4);
@@ -232,10 +223,10 @@ class ForecastServiceTest {
         WeatherData data = new WeatherData();
         data.setStationId("station-1");
         data.setTimestamp(Instant.now().minus(hoursAgo, ChronoUnit.HOURS));
-        data.setTemperature(20.0 + hoursAgo); // Increasing trend
-        data.setHumidity(60.0 - hoursAgo); // Decreasing trend
-        data.setPressure(1013.0 + hoursAgo * 0.1); // Slowly increasing
-        data.setPrecipitation(hoursAgo % 3 == 0 ? 1.0 : 0.0); // Some precipitation
+        data.setTemperature(20.0 + hoursAgo);
+        data.setHumidity(60.0 - hoursAgo);
+        data.setPressure(1013.0 + hoursAgo * 0.1);
+        data.setPrecipitation(hoursAgo % 3 == 0 ? 1.0 : 0.0);
         return data;
     }
 

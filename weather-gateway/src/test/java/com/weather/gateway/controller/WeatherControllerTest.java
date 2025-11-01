@@ -35,7 +35,6 @@ class WeatherControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Регистрируем модуль для работы с Java 8 Time API
         objectMapper.registerModule(new JavaTimeModule());
     }
 
@@ -62,7 +61,7 @@ class WeatherControllerTest {
 
     @Test
     void shouldReturnBadRequestForInvalidWeatherData() throws Exception {
-        // Given - invalid data (missing required fields)
+        // Given
         String invalidJson = """
         {
             "stationId": "station-1"
@@ -80,7 +79,7 @@ class WeatherControllerTest {
 
     @Test
     void shouldReturnBadRequestForNullValues() throws Exception {
-        // Given - data with null values
+        // Given
         String invalidJson = """
             {
                 "stationId": "station-1",

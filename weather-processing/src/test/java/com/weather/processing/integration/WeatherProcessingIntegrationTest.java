@@ -14,7 +14,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -22,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Testcontainers
 @SpringBootTest
-@Import(TestCacheConfig.class) // Импортируем тестовую конфигурацию кэша
+@Import(TestCacheConfig.class)
 class WeatherProcessingIntegrationTest {
 
     @Container
@@ -36,7 +35,6 @@ class WeatherProcessingIntegrationTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        // Отключаем кэш для тестов если нужно
         registry.add("spring.cache.type", () -> "none");
     }
 
@@ -94,8 +92,7 @@ class WeatherProcessingIntegrationTest {
 
         // Then
         assertEquals(2, latest.size());
-        // Should be ordered by timestamp descending
-        assertEquals(22.0, latest.get(0).getTemperature()); // Newer first
-        assertEquals(20.0, latest.get(1).getTemperature()); // Older second
+        assertEquals(22.0, latest.get(0).getTemperature());
+        assertEquals(20.0, latest.get(1).getTemperature());
     }
 }

@@ -58,7 +58,7 @@ class WeatherServiceTest {
         // When
         weatherService.processWeatherData(weatherData);
 
-        // Then - verify message content using ArgumentCaptor
+        // Then
         verify(rabbitTemplate).convertAndSend(
                 eq(WEATHER_DATA_EXCHANGE),
                 eq(WEATHER_DATA_ROUTING_KEY),

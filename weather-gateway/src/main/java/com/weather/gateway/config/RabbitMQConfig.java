@@ -36,7 +36,6 @@ public class RabbitMQConfig {
     @Bean
     public Jackson2JsonMessageConverter jsonMessageConverter() {
         ObjectMapper objectMapper = new ObjectMapper();
-        // Регистрируем модуль для Java 8 Date/Time API (поддерживает Instant)
         objectMapper.registerModule(new JavaTimeModule());
         return new Jackson2JsonMessageConverter(objectMapper);
     }

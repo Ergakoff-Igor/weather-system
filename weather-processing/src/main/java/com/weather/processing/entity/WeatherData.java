@@ -18,7 +18,7 @@ public class WeatherData {
     private String stationId;
 
     @Column(nullable = false)
-    private Instant timestamp; // Изменено на Instant
+    private Instant timestamp;
 
     @Column(nullable = false)
     private Double temperature;

@@ -19,7 +19,6 @@ public class WeatherDataService {
 
     @Transactional
     public void saveWeatherData(WeatherMessage message) {
-        // Проверяем, нет ли уже таких данных
         if (!weatherDataRepository.existsByStationIdAndTimestamp(message.getStationId(), message.getTimestamp())) {
             WeatherData weatherData = new WeatherData();
             weatherData.setStationId(message.getStationId());

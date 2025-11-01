@@ -16,7 +16,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
-@Validated  // Добавляем для валидации параметров методов
+@Validated
 @RestController
 @RequestMapping("/api/v1/weather")
 @RequiredArgsConstructor
