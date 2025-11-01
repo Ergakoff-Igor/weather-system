@@ -82,30 +82,3 @@ curl "http://localhost:8081/api/v1/weather/forecast?stationId=station-1&hours=3"
 ## Мониторинг
 * Prometheus метрики: http://localhost:8080/actuator/prometheus
 * Swagger UI: http://localhost:8080/swagger-ui.html
-
-## Локальная разработка
-### Запуск баз данных
-```bash
-docker-compose up postgres rabbitmq -d
-```
-
-### Запуск сервисов
-* Weather Gateway
-```bash
-cd weather-gateway
-mvn spring-boot:run
-```
-* Weather Processing (в отдельном терминале)
-```bash
-cd weather-processing
-mvn spring-boot:run
-```
-## Тестирование
-### Unit тесты
-```bash
-mvn test
-Integration тесты
-```
-```bash
-mvn verify
-```
